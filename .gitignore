@@ -3,3 +3,7 @@ node_modules/
 dist/
 npm-debug.log
 *.js.map
+package-lock.json
+MixedKeyboard.js
+SingleKeyboard.js
+VehicleEngine.js

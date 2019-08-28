@@ -1,9 +1,9 @@
-(function(global, factory) {
+(function (global, factory) {
     typeof exports === "object" && typeof module !== "undefined" ?
         module.exports = factory() :
         typeof define === "function" && define.amd ? define(factory) :
-        (global.KeyboardEngine = factory());
-}(this, (function() {
+            (global.KeyboardEngine = factory());
+}(this, (function () {
     "use strict";
 
     var Vue = require("vue");
@@ -12,17 +12,17 @@
     // 注入平台桥接对象
     var CallbackBridge = {
         _default: {
-            native_callback_changed: function(isCompleted, number) {
+            native_callback_changed: function (isCompleted, number) {
                 console.log("[无回调] 输入车牌号码（输入中），当前车牌：" + number);
             },
-            native_callback_completed: function(number, isAutoCompleted) {
+            native_callback_completed: function (number, isAutoCompleted) {
                 console.log("[无回调] 输入车牌号码（已完成），当前车牌：" + number + "，自动完成：" + isAutoCompleted);
             },
-            native_callback_show_message: function(message) {
+            native_callback_show_message: function (message) {
                 console.log("[无回调] 提示消息：" + message);
             }
         },
-        platform: function() {
+        platform: function () {
             var isAndroid = (typeof android === "object");
             if (isAndroid) {
                 return android;
@@ -34,13 +34,13 @@
                 }
             }
         },
-        onchanged: function(number, plateMode, isCompleted) {
-            this.platform().native_callback_changed(isCompleted, number);
+        onchanged: function (number, plateMode, isCompleted, selectedIndex) {
+            this.platform().native_callback_changed(isCompleted, number, selectedIndex);
         },
-        oncommit: function(number, plateMode, isAutoCompleted) {
+        oncommit: function (number, plateMode, isAutoCompleted) {
             this.platform().native_callback_completed(number, isAutoCompleted);
         },
-        onmessage: function(message) {
+        onmessage: function (message) {
             this.platform().native_callback_show_message(message);
         }
     };
@@ -63,28 +63,40 @@
 
     function _invalidType(obj, type, msg) {
         if (typeof obj !== type) {
-            CallbackBridge.onshowmessage(msg);
             console.log(msg);
+            CallbackBridge.onmessage(msg);
             return true;
         } else {
             return false;
         }
     }
 
+    function _indexOf(presetNumber, inputIndex) {
+        if (inputIndex === undefined || inputIndex < 0 || inputIndex > presetNumber.length) {
+            return presetNumber.length;
+        } else {
+            return inputIndex;
+        }
+    }
+
     // 更新键盘组件
-    return function(updateNumber, updateKeyboardType, provinceName) {
+    return function (updateNumber, updateKeyboardType, provinceName, selectedIndex, userMode) {
         // 默认车牌键盘类型为2
         updateKeyboardType = updateKeyboardType === undefined ? 0 : updateKeyboardType;
         console.log("收到更新键盘布局请求，车牌：" + updateNumber + "，键盘类型：" + updateKeyboardType + ", 省份：" + provinceName);
         if (_invalidType(updateNumber, "string", "初始化参数(number)必须是字符串！")) return;
         if (_invalidType(updateKeyboardType, "number", "初始化参数(keyboardType)必须是整数！")) return;
         if (_invalidType(provinceName, "string", "初始化参数(provinceName)必须是字符串！")) return;
+        console.log(_indexOf(updateNumber, selectedIndex));
         try {
             // 在设置车牌号码时，对车牌号码进行包装，以强制触发VUE的更新缓存数据。后续读取时，记得解包装！！
             vm.$set(vm.$data.args, "changedseed", new Date().getTime());
             vm.$set(vm.$data.args, "province", provinceName.trim());
             vm.$set(vm.$data.args, "keyboardtype", Math.max(0, Math.min(2, updateKeyboardType)));
             vm.$set(vm.$data.args, "number", updateNumber.trim().toUpperCase());
+            vm.$set(vm.$data.args, "selectedIndex", _indexOf(updateNumber, selectedIndex));
+            vm.$set(vm.$data.args, "userMode", userMode);
+            debugger
         } catch (err) {
             console.log(err);
         }
